@@ -40,6 +40,18 @@ body {
   scrollbar-width: none;
 }
 
+.image-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 8px;
+  max-width: 300px;
+}
+
+.common-image {
+  cursor: pointer;
+}
+
 .tab {
   width: 48px;
   text-align: center;
@@ -90,12 +102,13 @@ body {
 }
 
 #overlay .btn {
-  padding: 10px 20px;
+  padding: 6px 10px;
+  width: 48px;
   background-color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 2px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
