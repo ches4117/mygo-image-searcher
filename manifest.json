@@ -1,18 +1,16 @@
 {
   "manifest_version": 3,
-  "name": "Image searcher",
+  "name": "mygo-image-searcher",
   "version": "1.0",
-  "description": "Image searcher",
+  "description": "Use mygo image to chat with other people",
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "icon.png",
-      "48": "icon.png",
-      "128": "icon.png"
+      "16": "icons8-penguin-48.png",
+      "48": "icons8-penguin-48.png",
+      "128": "icons8-penguin-96.png"
     }
   },
-  "permissions": [
-    "activeTab",
-    "storage"
-  ]
+  "host_permissions": ["https://drive.miyago9267.com/*"],
+  "permissions": ["clipboardWrite", "activeTab", "storage"]
 }

@@ -35,7 +35,7 @@ body {
   flex-wrap: wrap;
   justify-content: space-between;
   margin-top: 10px;
-  max-height: 340px;
+  max-height: 360px;
   overflow-y: auto;
   scrollbar-width: none;
 }
