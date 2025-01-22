@@ -19,14 +19,14 @@ body {
   display: flex;
 }
 
-#searchInput {
+#search-input {
   border: 1px solid #ccc;
   border-radius: 5px;
   padding: 4px;
   outline: none;
 }
 
-#searchInput:focus {
+#search-input:focus {
   border-color: #007bff;
 }
 
@@ -101,7 +101,7 @@ body {
   pointer-events: none;
 }
 
-#overlay .btn {
+#overlay .search-btn {
   padding: 6px 10px;
   width: 48px;
   background-color: white;
@@ -112,7 +112,22 @@ body {
   transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
-#overlay .btn:hover {
+#overlay .search-btn:hover {
   background-color: #ddd;
   transform: scale(1.1);
+}
+
+#overlay .common-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #000;
+  border-radius: 5px;
+  color: white;
+  border: none;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  text-align: center;
+  cursor: pointer;
 }

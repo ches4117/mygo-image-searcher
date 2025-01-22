@@ -2,36 +2,19 @@ const tabs = document.querySelectorAll(".tab");
 const tabContents = document.querySelectorAll(".tab-content");
 const searchGallery = document.querySelector(".search-gallery");
 const commonGallery = document.querySelector(".common-gallery");
-const copyButton = document.getElementById('copy-btn')
-const saveButton = document.getElementById('save-btn')
-const commonButton = document.getElementById('common-btn')
+const searchButtons = document.querySelectorAll(".search-btn");
+const commonButtons = document.querySelectorAll(".common-btn");
+const copyButton = document.getElementById("copy-btn");
+const saveButton = document.getElementById("save-btn");
+const commonButton = document.getElementById("common-btn");
+const deleteButton = document.getElementById("delete-btn");
 const searchInput = document.getElementById("search-input");
+const overlay = document.getElementById("overlay");
 
 let hoverImgSrc = null;
 let hoverImgAlt = null;
 let searchTimeoutInstance = null;
-
-chrome.storage.sync.get("commonImageList", (res) => {
-  if (!res.commonImageList) return;
-  console.log(res.commonImageList)
-  res.commonImageList
-    .filter((image) => image.url && image.alt)
-    .forEach((image) => {
-      const imgElement = createImage(image, commonGallery);
-      addImageClickCopyEvent(imgElement)
-    });
-});
-
-tabs.forEach((tab) => {
-  tab.addEventListener("click", () => {
-    tabs.forEach((t) => t.classList.remove("active"));
-    tabContents.forEach((content) => content.classList.remove("active"));
-
-    tab.classList.add("active");
-    document.getElementById(tab.dataset.tab).classList.add("active");
-    if (tab.dataset.tab !== "searchTab") hideOverlay();
-  });
-});
+let currentTab = "commonTab";
 
 function addImageClickCopyEvent(imgElement) {
   imgElement.style.cursor = "pointer";
@@ -44,7 +27,7 @@ function addImageClickCopyEvent(imgElement) {
   });
 }
 
-function createImage(targetImg, tabContent) {
+function createImageElement(targetImg, tabContent) {
   const imgContainer = document.createElement("div");
   imgContainer.setAttribute("class", "image-container");
 
@@ -59,6 +42,7 @@ function createImage(targetImg, tabContent) {
   const altText = document.createElement("span");
   altText.innerHTML = targetImg.alt;
   imgContainer.appendChild(altText);
+  imgContainer.setAttribute("id", targetImg.alt);
   return img;
 }
 
@@ -71,9 +55,9 @@ function createSearch(inputValue) {
   searchTimeoutInstance = setTimeout(async function () {
     searchTimeoutInstance = null;
     const url = `https://mygoapi.miyago9267.com/mygo/img?keyword=${inputValue}`;
-    const res = await (await fetch(url)).json()
+    const res = await (await fetch(url)).json();
     searchGallery.innerHTML = "";
-    res.urls.forEach((url) => createImage(url, searchGallery));
+    res.urls.forEach((url) => createImageElement(url, searchGallery));
   }, 500);
 }
 
@@ -106,10 +90,39 @@ function hideOverlay() {
   overlay.style.pointerEvents = "none";
 }
 
+function deleteBtn(btns) {
+  btns.forEach((btn) => {
+    btn.style.display = "none";
+  });
+}
+
+function showBtn(btns) {
+  btns.forEach((btn) => {
+    btn.style.display = "block";
+  });
+}
+
+tabs.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    tabs.forEach((t) => t.classList.remove("active"));
+    tabContents.forEach((content) => content.classList.remove("active"));
+
+    tab.classList.add("active");
+    document.getElementById(tab.dataset.tab).classList.add("active");
+    if (tab.dataset.tab !== currentTab) {
+      currentTab = tab.dataset.tab;
+      hideOverlay();
+    }
+  });
+});
+
 // 當滑鼠移入圖片時顯示遮罩
 searchGallery.addEventListener("mouseover", (e) => {
   const target = e.target.closest(".image-container")?.querySelector("img");
   if (target) {
+    deleteBtn(commonButtons);
+    showBtn(searchButtons);
+
     const rect = target.getBoundingClientRect();
     overlay.style.width = `${rect.width}px`;
     overlay.style.height = `${rect.height}px`;
@@ -126,6 +139,18 @@ searchGallery.addEventListener("mouseover", (e) => {
 commonGallery.addEventListener("mouseover", (e) => {
   const target = e.target.closest(".image-container")?.querySelector("img");
   if (target) {
+    deleteBtn(searchButtons);
+    showBtn(commonButtons);
+
+    const rect = target.getBoundingClientRect();
+    overlay.style.width = "24px";
+    overlay.style.height = "24px";
+    overlay.style.top = `${rect.top + window.scrollY + 8}px`;
+    overlay.style.left = `${rect.left + window.scrollX + rect.width - 32}px`;
+    overlay.style.opacity = 1;
+    overlay.style.backgroundColor = "transparent";
+    overlay.style.pointerEvents = "auto";
+
     hoverImgSrc = target.src;
     hoverImgAlt = target.alt;
   }
@@ -151,15 +176,15 @@ searchInput.addEventListener("input", function () {
   }
 });
 
-copyButton.addEventListener('click', () => {
-  copyImage()
-  copyButton.innerHTML = '✓'
+copyButton.addEventListener("click", () => {
+  copyImage();
+  copyButton.innerHTML = "✓";
   setTimeout(() => {
-    copyButton.innerHTML = '複製'
+    copyButton.innerHTML = "複製";
   }, 500);
-})
+});
 
-saveButton.addEventListener('click', () => {
+saveButton.addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = hoverImgSrc;
   link.download = hoverImgSrc.split("/").pop();
@@ -167,16 +192,42 @@ saveButton.addEventListener('click', () => {
   link.click();
   document.body.removeChild(link);
   delete link;
-})
+});
 
-commonButton.addEventListener('click', () => {
+commonButton.addEventListener("click", () => {
+  commonButton.innerHTML = "✓";
   chrome.storage.sync.get(["commonImageList"], function (result) {
     const hoverImg = { url: hoverImgSrc, alt: hoverImgAlt };
     const imageList = result.commonImageList || [];
-    const imgElement = createImage(hoverImg, commonGallery)
-    
+    const imgElement = createImageElement(hoverImg, commonGallery);
+
     imageList.push(hoverImg);
-    addImageClickCopyEvent(imgElement)
+    addImageClickCopyEvent(imgElement);
     chrome.storage.sync.set({ commonImageList: imageList });
+    setTimeout(() => {
+      commonButton.innerHTML = "常用";
+    }, 300);
   });
-})
+});
+
+deleteButton.addEventListener("click", () => {
+  chrome.storage.sync.get(["commonImageList"], function (result) {
+    const imageList = result.commonImageList || [];
+    if (imageList.length === 0) return;
+
+    document.getElementById(hoverImgAlt).remove();
+    chrome.storage.sync.set({
+      commonImageList: imageList.filter((image) => image.alt !== hoverImgAlt),
+    });
+  });
+});
+
+chrome.storage.sync.get("commonImageList", (res) => {
+  if (!res.commonImageList) return;
+  res.commonImageList
+    .filter((image) => image.url && image.alt)
+    .forEach((image) => {
+      const imgElement = createImageElement(image, commonGallery);
+      addImageClickCopyEvent(imgElement);
+    });
+});
