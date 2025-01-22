@@ -102,8 +102,28 @@ commonGallery.addEventListener("mouseover", (e) => {
   }
 });
 
-function copyImage() {
-  navigator.clipboard.writeText(hoverImgSrc);
+async function copyImage() {
+  const img = document.createElement("img");
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  img.src = hoverImgSrc;
+  img.alt = hoverImgAlt;
+
+  // 設定畫布尺寸為圖片尺寸
+  canvas.width = img.width;
+  canvas.height = img.height;
+
+  // 將圖片繪製到畫布上
+  ctx.drawImage(img, 0, 0);
+
+  // 將畫布內容轉為 Blob (PNG 格式)
+  const blob = await new Promise((resolve) =>
+    canvas.toBlob(resolve, "image/png")
+  );
+
+  // 建立 ClipboardItem 並寫入剪貼板
+  const clipboardItem = new ClipboardItem({ "image/png": blob });
+  await navigator.clipboard.write([clipboardItem]);
 }
 
 $(".copy-btn").click(() => {
