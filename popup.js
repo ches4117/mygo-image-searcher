@@ -216,6 +216,7 @@ deleteButton.addEventListener("click", () => {
     if (imageList.length === 0) return;
 
     document.getElementById(hoverImgAlt).remove();
+    hideOverlay();
     chrome.storage.sync.set({
       commonImageList: imageList.filter((image) => image.alt !== hoverImgAlt),
     });
