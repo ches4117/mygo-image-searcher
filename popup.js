@@ -1,26 +1,24 @@
-const $ = window.jQuery;
-
-// Tab Menu
 const tabs = document.querySelectorAll(".tab");
+const tabContents = document.querySelectorAll(".tab-content");
 const searchGallery = document.querySelector(".search-gallery");
 const commonGallery = document.querySelector(".common-gallery");
-const commonList = document.querySelector(".common-list");
-const tabContents = document.querySelectorAll(".tab-content");
+const copyButton = document.getElementById('copy-btn')
+const saveButton = document.getElementById('save-btn')
+const commonButton = document.getElementById('common-btn')
+const searchInput = document.getElementById("search-input");
+
+let hoverImgSrc = null;
+let hoverImgAlt = null;
+let searchTimeoutInstance = null;
 
 chrome.storage.sync.get("commonImageList", (res) => {
   if (!res.commonImageList) return;
+  console.log(res.commonImageList)
   res.commonImageList
     .filter((image) => image.url && image.alt)
     .forEach((image) => {
       const imgElement = createImage(image, commonGallery);
-      imgElement.style.cursor = "pointer";
-      imgElement.addEventListener("click", () => {
-        copyImage();
-        imgElement.style.cursor = "default";
-        setTimeout(() => {
-          imgElement.style.cursor = "pointer";
-        }, 200);
-      });
+      addImageClickCopyEvent(imgElement)
     });
 });
 
@@ -35,9 +33,16 @@ tabs.forEach((tab) => {
   });
 });
 
-// Search Image
-const searchInput = document.getElementById("searchInput");
-let searchTimeoutInstance = null;
+function addImageClickCopyEvent(imgElement) {
+  imgElement.style.cursor = "pointer";
+  imgElement.addEventListener("click", () => {
+    copyImage();
+    imgElement.style.cursor = "default";
+    setTimeout(() => {
+      imgElement.style.cursor = "pointer";
+    }, 200);
+  });
+}
 
 function createImage(targetImg, tabContent) {
   const imgContainer = document.createElement("div");
@@ -63,44 +68,14 @@ function createSearch(inputValue) {
     return;
   }
 
-  searchTimeoutInstance = setTimeout(function () {
+  searchTimeoutInstance = setTimeout(async function () {
     searchTimeoutInstance = null;
     const url = `https://mygoapi.miyago9267.com/mygo/img?keyword=${inputValue}`;
-    $.ajax({
-      url,
-    }).done(function (data) {
-      searchGallery.innerHTML = "";
-      data.urls.forEach((url) => createImage(url, searchGallery));
-    });
+    const res = await (await fetch(url)).json()
+    searchGallery.innerHTML = "";
+    res.urls.forEach((url) => createImage(url, searchGallery));
   }, 500);
 }
-
-let hoverImgSrc = null;
-let hoverImgAlt = null;
-// 當滑鼠移入圖片時顯示遮罩
-searchGallery.addEventListener("mouseover", (e) => {
-  const target = e.target.closest(".image-container").querySelector("img");
-  if (target) {
-    const rect = target.getBoundingClientRect();
-    overlay.style.width = `${rect.width}px`;
-    overlay.style.height = `${rect.height}px`;
-    overlay.style.top = `${rect.top + window.scrollY}px`;
-    overlay.style.left = `${rect.left + window.scrollX}px`;
-    overlay.style.opacity = 1;
-    overlay.style.pointerEvents = "auto";
-
-    hoverImgSrc = target.src;
-    hoverImgAlt = target.alt;
-  }
-});
-
-commonGallery.addEventListener("mouseover", (e) => {
-  const target = e.target.closest(".image-container").querySelector("img");
-  if (target) {
-    hoverImgSrc = target.src;
-    hoverImgAlt = target.alt;
-  }
-});
 
 async function copyImage() {
   const img = document.createElement("img");
@@ -126,38 +101,35 @@ async function copyImage() {
   await navigator.clipboard.write([clipboardItem]);
 }
 
-$(".copy-btn").click(() => {
-  copyImage();
-  $(".copy-btn").html("✓");
-  setTimeout(() => {
-    $(".copy-btn").html("複製");
-  }, 500);
-});
-
-$(".save-btn").click(() => {
-  const link = document.createElement("a");
-  link.href = hoverImgSrc;
-  link.download = hoverImgSrc.split("/").pop();
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  delete link;
-});
-
-$(".common-btn").click(() => {
-  // Save the img object
-  chrome.storage.sync.get(["commonImageList"], function (result) {
-    const hoverImg = { url: hoverImgSrc, alt: hoverImgAlt };
-    const repos = result.commonImageList || [];
-    repos.push(hoverImg);
-    chrome.storage.sync.set({ commonImageList: repos });
-  });
-});
-
 function hideOverlay() {
   overlay.style.opacity = 0;
   overlay.style.pointerEvents = "none";
 }
+
+// 當滑鼠移入圖片時顯示遮罩
+searchGallery.addEventListener("mouseover", (e) => {
+  const target = e.target.closest(".image-container")?.querySelector("img");
+  if (target) {
+    const rect = target.getBoundingClientRect();
+    overlay.style.width = `${rect.width}px`;
+    overlay.style.height = `${rect.height}px`;
+    overlay.style.top = `${rect.top + window.scrollY}px`;
+    overlay.style.left = `${rect.left + window.scrollX}px`;
+    overlay.style.opacity = 1;
+    overlay.style.pointerEvents = "auto";
+
+    hoverImgSrc = target.src;
+    hoverImgAlt = target.alt;
+  }
+});
+
+commonGallery.addEventListener("mouseover", (e) => {
+  const target = e.target.closest(".image-container")?.querySelector("img");
+  if (target) {
+    hoverImgSrc = target.src;
+    hoverImgAlt = target.alt;
+  }
+});
 
 // 當滑鼠移出時隱藏遮罩
 searchGallery.addEventListener("mouseout", (event) => {
@@ -178,3 +150,33 @@ searchInput.addEventListener("input", function () {
     createSearch(inputValue);
   }
 });
+
+copyButton.addEventListener('click', () => {
+  copyImage()
+  copyButton.innerHTML = '✓'
+  setTimeout(() => {
+    copyButton.innerHTML = '複製'
+  }, 500);
+})
+
+saveButton.addEventListener('click', () => {
+  const link = document.createElement("a");
+  link.href = hoverImgSrc;
+  link.download = hoverImgSrc.split("/").pop();
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  delete link;
+})
+
+commonButton.addEventListener('click', () => {
+  chrome.storage.sync.get(["commonImageList"], function (result) {
+    const hoverImg = { url: hoverImgSrc, alt: hoverImgAlt };
+    const imageList = result.commonImageList || [];
+    const imgElement = createImage(hoverImg, commonGallery)
+    
+    imageList.push(hoverImg);
+    addImageClickCopyEvent(imgElement)
+    chrome.storage.sync.set({ commonImageList: imageList });
+  });
+})
