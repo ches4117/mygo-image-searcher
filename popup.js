@@ -1,5 +1,6 @@
 const tabs = document.querySelectorAll(".tab");
 const tabContents = document.querySelectorAll(".tab-content");
+const galleries = document.querySelectorAll(".gallery");
 const searchGallery = document.querySelector(".search-gallery");
 const commonGallery = document.querySelector(".common-gallery");
 const searchButtons = document.querySelectorAll(".search-btn");
@@ -116,6 +117,12 @@ tabs.forEach((tab) => {
   });
 });
 
+galleries.forEach((gallery) => {
+  gallery.addEventListener("scroll", () => {
+    hideOverlay();
+  });
+});
+
 // 當滑鼠移入圖片時顯示遮罩
 searchGallery.addEventListener("mouseover", (e) => {
   const target = e.target.closest(".image-container")?.querySelector("img");
@@ -124,12 +131,19 @@ searchGallery.addEventListener("mouseover", (e) => {
     showBtn(searchButtons);
 
     const rect = target.getBoundingClientRect();
-    overlay.style.width = `${rect.width}px`;
-    overlay.style.height = `${rect.height}px`;
-    overlay.style.top = `${rect.top + window.scrollY}px`;
-    overlay.style.left = `${rect.left + window.scrollX}px`;
+    const tabRect = tabContents[0].getBoundingClientRect();
+
+    const overlayWidth = Math.min(rect.width, tabRect.right - rect.left); // 限制 overlay 寬度
+    const overlayHeight = Math.min(rect.height, tabRect.bottom - rect.top); // 限制 overlay 高度
+
+    overlay.style.width = `${overlayWidth}px`;
+    overlay.style.height = `${overlayHeight}px`;
+    overlay.style.top = `${Math.max(rect.top, tabRect.top) + window.scrollY}px`;
+    overlay.style.left = `${
+      Math.max(rect.left, tabRect.left) + window.scrollX
+    }px`;
+
     overlay.style.opacity = 1;
-    overlay.style.pointerEvents = "auto";
 
     hoverImgSrc = target.src;
     hoverImgAlt = target.alt;
@@ -139,6 +153,7 @@ searchGallery.addEventListener("mouseover", (e) => {
 commonGallery.addEventListener("mouseover", (e) => {
   const target = e.target.closest(".image-container")?.querySelector("img");
   if (target) {
+    console.log(target, "!@!@!");
     deleteBtn(searchButtons);
     showBtn(commonButtons);
 
@@ -149,7 +164,6 @@ commonGallery.addEventListener("mouseover", (e) => {
     overlay.style.left = `${rect.left + window.scrollX + rect.width - 32}px`;
     overlay.style.opacity = 1;
     overlay.style.backgroundColor = "transparent";
-    overlay.style.pointerEvents = "auto";
 
     hoverImgSrc = target.src;
     hoverImgAlt = target.alt;
