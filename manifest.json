@@ -11,6 +11,5 @@
       "128": "icons8-penguin-96.png"
     }
   },
-  "host_permissions": ["https://drive.miyago9267.com/*"],
-  "permissions": ["clipboardWrite", "activeTab", "storage"]
+  "permissions": ["clipboardWrite", "storage"]
 }

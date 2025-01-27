@@ -3,17 +3,12 @@ const tabContents = document.querySelectorAll(".tab-content");
 const galleries = document.querySelectorAll(".gallery");
 const searchGallery = document.querySelector(".search-gallery");
 const commonGallery = document.querySelector(".common-gallery");
-const searchButtons = document.querySelectorAll(".search-btn");
-const commonButtons = document.querySelectorAll(".common-btn");
 const copyButton = document.getElementById("copy-btn");
 const saveButton = document.getElementById("save-btn");
 const commonButton = document.getElementById("common-btn");
 const deleteButton = document.getElementById("delete-btn");
 const searchInput = document.getElementById("search-input");
-const overlay = document.getElementById("overlay");
 
-let hoverImgSrc = null;
-let hoverImgAlt = null;
 let searchTimeoutInstance = null;
 let currentTab = "commonTab";
 
