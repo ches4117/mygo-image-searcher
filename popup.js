@@ -20,7 +20,7 @@ let currentTab = "commonTab";
 function addImageClickCopyEvent(imgElement) {
   imgElement.style.cursor = "pointer";
   imgElement.addEventListener("click", () => {
-    copyImage();
+    copyImage({ src: imgElement.src, alt: imgElement.alt });
     imgElement.style.cursor = "default";
     setTimeout(() => {
       imgElement.style.cursor = "pointer";
@@ -28,23 +28,35 @@ function addImageClickCopyEvent(imgElement) {
   });
 }
 
-function createImageElement(targetImg, tabContent) {
-  const imgContainer = document.createElement("div");
-  imgContainer.setAttribute("class", "image-container");
+function createSearchImageElement(targetImg) {
+  const item = document.createElement("div");
+  item.className = "gallery-item";
+  item.innerHTML = `
+    <img src="${targetImg.url}" alt="${targetImg.alt}" />
+    <div class="search-btn-container">
+      <button class="btn copy-btn" data-src="${targetImg.url}" data-alt="${targetImg.alt}">複製</button>
+      <button class="btn download-btn" data-src="${targetImg.url}" data-alt="${targetImg.alt}">下載</button>
+      <button class="btn common-btn" data-src="${targetImg.url}" data-alt="${targetImg.alt}">常用</button>
+    </div>
+  `;
+  searchGallery.appendChild(item);
+  copyClick(item.querySelector(".copy-btn"));
+  saveClick(item.querySelector(".download-btn"));
+  commonClick(item.querySelector(".common-btn"));
+}
 
-  const img = document.createElement("img");
-  img.src = targetImg.url;
-  img.alt = targetImg.alt;
-  img.width = 300;
-  img.height = 150;
-  imgContainer.appendChild(img);
-  tabContent.appendChild(imgContainer);
-
-  const altText = document.createElement("span");
-  altText.innerHTML = targetImg.alt;
-  imgContainer.appendChild(altText);
-  imgContainer.setAttribute("id", targetImg.alt);
-  return img;
+function createCommonImageElement(targetImg) {
+  const item = document.createElement("div");
+  item.className = "gallery-item";
+  item.innerHTML = `
+    <img src="${targetImg.url}" alt="${targetImg.alt}" />
+    <div class="common-btn-container">
+      <button class="btn delete-btn" data-src="${targetImg.url}" data-alt="${targetImg.alt}" class="delete-btn">X</button>
+    </div>
+  `;
+  commonGallery.appendChild(item);
+  deleteClick(item);
+  return item;
 }
 
 function createSearch(inputValue) {
@@ -58,191 +70,144 @@ function createSearch(inputValue) {
     const url = `https://mygoapi.miyago9267.com/mygo/img?keyword=${inputValue}`;
     const res = await (await fetch(url)).json();
     searchGallery.innerHTML = "";
-    res.urls.forEach((url) => createImageElement(url, searchGallery));
+    res.urls.forEach((url) => createSearchImageElement(url));
   }, 500);
 }
 
-async function copyImage() {
+async function copyImage({ src, alt }) {
   const img = document.createElement("img");
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  img.src = hoverImgSrc;
-  img.alt = hoverImgAlt;
+  img.src = src;
+  img.alt = alt;
 
-  // 設定畫布尺寸為圖片尺寸
   canvas.width = img.width;
   canvas.height = img.height;
 
-  // 將圖片繪製到畫布上
   ctx.drawImage(img, 0, 0);
 
-  // 將畫布內容轉為 Blob (PNG 格式)
   const blob = await new Promise((resolve) =>
     canvas.toBlob(resolve, "image/png")
   );
 
-  // 建立 ClipboardItem 並寫入剪貼板
   const clipboardItem = new ClipboardItem({ "image/png": blob });
   await navigator.clipboard.write([clipboardItem]);
 }
 
-function hideOverlay() {
-  overlay.style.opacity = 0;
-  overlay.style.pointerEvents = "none";
+function deleteBtnContainer() {
+  const buttonContainer = document.querySelector(".gallery-container");
+  if (buttonContainer) {
+    buttonContainer.remove();
+  }
 }
 
-function deleteBtn(btns) {
-  btns.forEach((btn) => {
-    btn.style.display = "none";
+function addTabClick() {
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      tabs.forEach((t) => t.classList.remove("active"));
+      tabContents.forEach((content) => content.classList.remove("active"));
+
+      tab.classList.add("active");
+      document.getElementById(tab.dataset.tab).classList.add("active");
+      if (tab.dataset.tab !== currentTab) {
+        currentTab = tab.dataset.tab;
+        deleteBtnContainer();
+      }
+    });
   });
 }
 
-function showBtn(btns) {
-  btns.forEach((btn) => {
-    btn.style.display = "block";
+function handleGalleyScroll() {
+  galleries.forEach((gallery) => {
+    gallery.addEventListener("scroll", () => {
+      deleteBtnContainer();
+    });
   });
 }
 
-tabs.forEach((tab) => {
-  tab.addEventListener("click", () => {
-    tabs.forEach((t) => t.classList.remove("active"));
-    tabContents.forEach((content) => content.classList.remove("active"));
+function copyClick(button) {
+  button.addEventListener("click", () => {
+    copyImage({ src: button.dataset.src, alt: button.dataset.alt });
+    button.innerHTML = "✓";
+    setTimeout(() => {
+      button.innerHTML = "複製";
+    }, 500);
+  });
+}
 
-    tab.classList.add("active");
-    document.getElementById(tab.dataset.tab).classList.add("active");
-    if (tab.dataset.tab !== currentTab) {
-      currentTab = tab.dataset.tab;
-      hideOverlay();
+function saveClick(button) {
+  button.addEventListener("click", () => {
+    const link = document.createElement("a");
+    link.href = button.dataset.src;
+    link.download = button.dataset.alt.split("/").pop();
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    delete link;
+  });
+}
+
+function commonClick(button) {
+  button.addEventListener("click", () => {
+    button.innerHTML = "✓";
+    chrome.storage.sync.get(["commonImageList"], function (result) {
+      const hoverImg = { url: button.dataset.src, alt: button.dataset.alt };
+      const imageList = result.commonImageList || [];
+      const imgElement = createCommonImageElement(hoverImg, commonGallery);
+
+      imageList.push(hoverImg);
+      addImageClickCopyEvent(imgElement.querySelector("img"));
+      chrome.storage.sync.set({ commonImageList: imageList });
+      setTimeout(() => {
+        button.innerHTML = "常用";
+      }, 300);
+    });
+  });
+}
+
+function deleteClick(imageContainer) {
+  const button = imageContainer.querySelector(".delete-btn");
+  button.addEventListener("click", () => {
+    chrome.storage.sync.get(["commonImageList"], function (result) {
+      const imageList = result.commonImageList || [];
+      if (imageList.length === 0) return;
+
+      imageContainer.remove();
+      chrome.storage.sync.set({
+        commonImageList: imageList.filter(
+          (image) => image.alt !== button.dataset.alt
+        ),
+      });
+    });
+  });
+}
+
+function handleSearchInput() {
+  searchInput.addEventListener("input", function () {
+    inputValue = searchInput.value.trim();
+
+    if (searchTimeoutInstance) {
+      clearTimeout(searchTimeoutInstance);
+      createSearch(inputValue);
+    } else {
+      createSearch(inputValue);
     }
   });
-});
+}
 
-galleries.forEach((gallery) => {
-  gallery.addEventListener("scroll", () => {
-    hideOverlay();
+function getCommonImageList() {
+  chrome.storage.sync.get("commonImageList", (res) => {
+    if (!res.commonImageList) return;
+    res.commonImageList
+      .filter((image) => image.url && image.alt)
+      .forEach((image) => {
+        const imgElement = createCommonImageElement(image, commonGallery);
+        addImageClickCopyEvent(imgElement.querySelector("img"));
+      });
   });
-});
+}
 
-// 當滑鼠移入圖片時顯示遮罩
-searchGallery.addEventListener("mouseover", (e) => {
-  const target = e.target.closest(".image-container")?.querySelector("img");
-  if (target) {
-    deleteBtn(commonButtons);
-    showBtn(searchButtons);
-
-    const rect = target.getBoundingClientRect();
-    const tabRect = tabContents[0].getBoundingClientRect();
-
-    const overlayWidth = Math.min(rect.width, tabRect.right - rect.left); // 限制 overlay 寬度
-    const overlayHeight = Math.min(rect.height, tabRect.bottom - rect.top); // 限制 overlay 高度
-
-    overlay.style.width = `${overlayWidth}px`;
-    overlay.style.height = `${overlayHeight}px`;
-    overlay.style.top = `${Math.max(rect.top, tabRect.top) + window.scrollY}px`;
-    overlay.style.left = `${
-      Math.max(rect.left, tabRect.left) + window.scrollX
-    }px`;
-
-    overlay.style.opacity = 1;
-
-    hoverImgSrc = target.src;
-    hoverImgAlt = target.alt;
-  }
-});
-
-commonGallery.addEventListener("mouseover", (e) => {
-  const target = e.target.closest(".image-container")?.querySelector("img");
-  if (target) {
-    console.log(target, "!@!@!");
-    deleteBtn(searchButtons);
-    showBtn(commonButtons);
-
-    const rect = target.getBoundingClientRect();
-    overlay.style.width = "24px";
-    overlay.style.height = "24px";
-    overlay.style.top = `${rect.top + window.scrollY + 8}px`;
-    overlay.style.left = `${rect.left + window.scrollX + rect.width - 32}px`;
-    overlay.style.opacity = 1;
-    overlay.style.backgroundColor = "transparent";
-
-    hoverImgSrc = target.src;
-    hoverImgAlt = target.alt;
-  }
-});
-
-// 當滑鼠移出時隱藏遮罩
-searchGallery.addEventListener("mouseout", (event) => {
-  if (event.target.tagName === "IMG") return;
-  hideOverlay();
-});
-
-searchInput.addEventListener("input", function () {
-  inputValue = searchInput.value.trim();
-  if (!inputValue) {
-    hideOverlay();
-  }
-
-  if (searchTimeoutInstance) {
-    clearTimeout(searchTimeoutInstance);
-    createSearch(inputValue);
-  } else {
-    createSearch(inputValue);
-  }
-});
-
-copyButton.addEventListener("click", () => {
-  copyImage();
-  copyButton.innerHTML = "✓";
-  setTimeout(() => {
-    copyButton.innerHTML = "複製";
-  }, 500);
-});
-
-saveButton.addEventListener("click", () => {
-  const link = document.createElement("a");
-  link.href = hoverImgSrc;
-  link.download = hoverImgSrc.split("/").pop();
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  delete link;
-});
-
-commonButton.addEventListener("click", () => {
-  commonButton.innerHTML = "✓";
-  chrome.storage.sync.get(["commonImageList"], function (result) {
-    const hoverImg = { url: hoverImgSrc, alt: hoverImgAlt };
-    const imageList = result.commonImageList || [];
-    const imgElement = createImageElement(hoverImg, commonGallery);
-
-    imageList.push(hoverImg);
-    addImageClickCopyEvent(imgElement);
-    chrome.storage.sync.set({ commonImageList: imageList });
-    setTimeout(() => {
-      commonButton.innerHTML = "常用";
-    }, 300);
-  });
-});
-
-deleteButton.addEventListener("click", () => {
-  chrome.storage.sync.get(["commonImageList"], function (result) {
-    const imageList = result.commonImageList || [];
-    if (imageList.length === 0) return;
-
-    document.getElementById(hoverImgAlt).remove();
-    hideOverlay();
-    chrome.storage.sync.set({
-      commonImageList: imageList.filter((image) => image.alt !== hoverImgAlt),
-    });
-  });
-});
-
-chrome.storage.sync.get("commonImageList", (res) => {
-  if (!res.commonImageList) return;
-  res.commonImageList
-    .filter((image) => image.url && image.alt)
-    .forEach((image) => {
-      const imgElement = createImageElement(image, commonGallery);
-      addImageClickCopyEvent(imgElement);
-    });
-});
+addTabClick();
+handleSearchInput();
+handleGalleyScroll();
+getCommonImageList();
