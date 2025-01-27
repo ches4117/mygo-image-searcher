@@ -6,10 +6,12 @@
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "icons8-penguin-48.png",
-      "48": "icons8-penguin-48.png",
-      "128": "icons8-penguin-96.png"
+      "16": "16.png",
+      "48": "48.png",
+      "96": "96.png",
+      "128": "128.png"
     }
   },
+  "host_permissions": ["https://drive.miyago9267.com/*"],
   "permissions": ["clipboardWrite", "storage"]
 }
