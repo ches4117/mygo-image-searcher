@@ -89,13 +89,6 @@ async function copyImage({ src, alt }) {
   await navigator.clipboard.write([clipboardItem]);
 }
 
-function deleteBtnContainer() {
-  const buttonContainer = document.querySelector(".gallery-container");
-  if (buttonContainer) {
-    buttonContainer.remove();
-  }
-}
-
 function addTabClick() {
   tabs.forEach((tab) => {
     tab.addEventListener("click", () => {
@@ -108,14 +101,6 @@ function addTabClick() {
         currentTab = tab.dataset.tab;
         deleteBtnContainer();
       }
-    });
-  });
-}
-
-function handleGalleyScroll() {
-  galleries.forEach((gallery) => {
-    gallery.addEventListener("scroll", () => {
-      deleteBtnContainer();
     });
   });
 }
@@ -204,5 +189,4 @@ function getCommonImageList() {
 
 addTabClick();
 handleSearchInput();
-handleGalleyScroll();
 getCommonImageList();
