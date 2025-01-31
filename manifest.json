@@ -4,7 +4,7 @@
   "gecko": {
     "id": "ches4117@gmail.com"
   },
-  "version": "1.0",
+  "version": "1.2",
   "description": "Use mygo image to chat with other people",
   "action": {
     "default_popup": "./src/popup.html",
