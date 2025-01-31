@@ -10,7 +10,30 @@ const deleteButton = document.getElementById("delete-btn");
 const searchInput = document.getElementById("search-input");
 
 let searchTimeoutInstance = null;
-let currentTab = "commonTab";
+let currentTab = "";
+
+function setCurrentTab(tab) {
+  currentTab = tab;
+}
+
+function addActiveClass(tab) {
+  tab.classList.add("active");
+  document.getElementById(tab.dataset.tab).classList.add("active");
+}
+
+function addTabClick() {
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      setCurrentTab(tab.dataset.tab);
+      tabs.forEach((t) => t.classList.remove("active"));
+      tabContents.forEach((content) => content.classList.remove("active"));
+
+      if (tab.dataset.tab === currentTab) {
+        addActiveClass(tab);
+      }
+    });
+  });
+}
 
 function addImageClickCopyEvent(imgElement) {
   imgElement.style.cursor = "pointer";
@@ -54,6 +77,18 @@ function createCommonImageElement(targetImg) {
   return item;
 }
 
+function createEmptyElement() {
+  const empty = document.createElement("div");
+  empty.className = "empty-common-gallery";
+  empty.innerHTML = "搜尋後加入常用圖片";
+  commonGallery.appendChild(empty);
+}
+
+function removeEmptyElement() {
+  const empty = document.querySelector(".empty-common-gallery");
+  if (empty) empty.remove();
+}
+
 function createSearch(inputValue) {
   if (!inputValue) {
     searchGallery.innerHTML = "";
@@ -89,22 +124,6 @@ async function copyImage({ src, alt }) {
   await navigator.clipboard.write([clipboardItem]);
 }
 
-function addTabClick() {
-  tabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      tabs.forEach((t) => t.classList.remove("active"));
-      tabContents.forEach((content) => content.classList.remove("active"));
-
-      tab.classList.add("active");
-      document.getElementById(tab.dataset.tab).classList.add("active");
-      if (tab.dataset.tab !== currentTab) {
-        currentTab = tab.dataset.tab;
-        deleteBtnContainer();
-      }
-    });
-  });
-}
-
 function copyClick(button) {
   button.addEventListener("click", () => {
     copyImage({ src: button.dataset.src, alt: button.dataset.alt });
@@ -131,6 +150,7 @@ function commonClick(button) {
   button.addEventListener("click", () => {
     button.innerHTML = "✓";
     chrome.storage.sync.get(["commonImageList"], function (result) {
+      removeEmptyElement();
       const hoverImg = { url: button.dataset.src, alt: button.dataset.alt };
       const imageList = result.commonImageList || [];
       const imgElement = createCommonImageElement(hoverImg, commonGallery);
@@ -150,14 +170,14 @@ function deleteClick(imageContainer) {
   button.addEventListener("click", () => {
     chrome.storage.sync.get(["commonImageList"], function (result) {
       const imageList = result.commonImageList || [];
-      if (imageList.length === 0) return;
+      if (!imageList || imageList.length === 0) return;
 
+      const retainImageList = imageList.filter(
+        (image) => image.alt !== button.dataset.alt
+      );
+      if (retainImageList.length === 0) createEmptyElement();
+      chrome.storage.sync.set({ commonImageList: retainImageList });
       imageContainer.remove();
-      chrome.storage.sync.set({
-        commonImageList: imageList.filter(
-          (image) => image.alt !== button.dataset.alt
-        ),
-      });
     });
   });
 }
@@ -177,9 +197,17 @@ function handleSearchInput() {
 
 function getCommonImageList() {
   chrome.storage.sync.get("commonImageList", (res) => {
-    if (!res.commonImageList) return;
+    if (!res.commonImageList || res.commonImageList.length === 0) {
+      setCurrentTab("searchTab");
+      addActiveClass(document.querySelector(`[data-tab='${currentTab}']`));
+      createEmptyElement();
+      return;
+    }
+
+    setCurrentTab("commonTab");
+    addActiveClass(document.querySelector(`[data-tab='${currentTab}']`));
     res.commonImageList
-      .filter((image) => image.url && image.alt)
+      ?.filter((image) => image.url && image.alt)
       .forEach((image) => {
         const imgElement = createCommonImageElement(image, commonGallery);
         addImageClickCopyEvent(imgElement.querySelector("img"));
@@ -187,6 +215,6 @@ function getCommonImageList() {
   });
 }
 
+getCommonImageList();
 addTabClick();
 handleSearchInput();
-getCommonImageList();
