@@ -77,11 +77,18 @@ function createCommonImageElement(targetImg) {
   return item;
 }
 
-function createEmptyElement() {
+function createCommontInitElement() {
   const empty = document.createElement("div");
   empty.className = "empty-common-gallery";
   empty.innerHTML = "搜尋後加入常用圖片";
   commonGallery.appendChild(empty);
+}
+
+function createSearchElement(searchString) {
+  const element = document.createElement("div");
+  element.className = "empty-common-gallery";
+  element.innerHTML = searchString;
+  searchGallery.appendChild(element);
 }
 
 function removeEmptyElement() {
@@ -90,9 +97,12 @@ function removeEmptyElement() {
 }
 
 function createSearch(inputValue) {
+  searchGallery.innerHTML = "";
   if (!inputValue) {
-    searchGallery.innerHTML = "";
+    createSearchElement("輸入台詞搜尋圖片");
     return;
+  } else {
+    createSearchElement("搜尋中...");
   }
 
   searchTimeoutInstance = setTimeout(async function () {
@@ -100,7 +110,11 @@ function createSearch(inputValue) {
     const url = `https://mygoapi.miyago9267.com/mygo/img?keyword=${inputValue}`;
     const res = await (await fetch(url)).json();
     searchGallery.innerHTML = "";
-    res.urls.forEach((url) => createSearchImageElement(url));
+    if (res.urls.length === 0) createSearchElement("沒有搜尋結果");
+    else {
+      removeEmptyElement();
+      res.urls.forEach((url) => createSearchImageElement(url));
+    }
   }, 500);
 }
 
@@ -175,7 +189,7 @@ function deleteClick(imageContainer) {
       const retainImageList = imageList.filter(
         (image) => image.alt !== button.dataset.alt
       );
-      if (retainImageList.length === 0) createEmptyElement();
+      if (retainImageList.length === 0) createCommontInitElement();
       chrome.storage.sync.set({ commonImageList: retainImageList });
       imageContainer.remove();
     });
@@ -183,6 +197,7 @@ function deleteClick(imageContainer) {
 }
 
 function handleSearchInput() {
+  createSearchElement("輸入台詞搜尋圖片");
   searchInput.addEventListener("input", function () {
     inputValue = searchInput.value.trim();
 
@@ -200,7 +215,7 @@ function getCommonImageList() {
     if (!res.commonImageList || res.commonImageList.length === 0) {
       setCurrentTab("searchTab");
       addActiveClass(document.querySelector(`[data-tab='${currentTab}']`));
-      createEmptyElement();
+      createCommontInitElement();
       return;
     }
 
