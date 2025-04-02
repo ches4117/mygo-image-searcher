@@ -8,9 +8,14 @@ const saveButton = document.getElementById("save-btn");
 const commonButton = document.getElementById("common-btn");
 const deleteButton = document.getElementById("delete-btn");
 const searchInput = document.getElementById("search-input");
+const pageSize = 10
+const maxScrollHeight = 500
 
-let searchTimeoutInstance = null;
+let currentPage = 1
 let currentTab = "";
+let searchTimeoutInstance = null;
+let inputMappingArray = [];
+let filtMappingArray = [];
 
 function setCurrentTab(tab) {
   currentTab = tab;
@@ -98,6 +103,8 @@ function removeEmptyElement() {
 
 function createSearch(inputValue) {
   searchGallery.innerHTML = "";
+  currentPage = 1;
+
   if (!inputValue) {
     createSearchElement("輸入台詞搜尋圖片");
     return;
@@ -107,13 +114,11 @@ function createSearch(inputValue) {
 
   searchTimeoutInstance = setTimeout(async function () {
     searchTimeoutInstance = null;
-    const url = `https://mygoapi.miyago9267.com/mygo/img?keyword=${inputValue}`;
-    const res = await (await fetch(url)).json();
     searchGallery.innerHTML = "";
-    if (res.urls.length === 0) createSearchElement("沒有搜尋結果");
+    if (inputValue.length === 0) createSearchElement("沒有搜尋結果");
     else {
       removeEmptyElement();
-      res.urls.forEach((url) => createSearchImageElement(url));
+      inputValue.forEach((url) => createSearchImageElement(url));
     }
   }, 500);
 }
@@ -200,12 +205,13 @@ function handleSearchInput() {
   createSearchElement("輸入台詞搜尋圖片");
   searchInput.addEventListener("input", function () {
     inputValue = searchInput.value.trim();
+    filtMappingArray = inputMappingArray.filter(item => item.text.includes(inputValue))
 
     if (searchTimeoutInstance) {
       clearTimeout(searchTimeoutInstance);
-      createSearch(inputValue);
+      createSearch(getPageItems(currentPage));
     } else {
-      createSearch(inputValue);
+      createSearch(getPageItems(currentPage));
     }
   });
 }
@@ -230,6 +236,35 @@ function getCommonImageList() {
   });
 }
 
+function getPageItems(nowPage) {
+  return filtMappingArray
+    .slice(pageSize * (nowPage - 1), pageSize * nowPage)
+    .map(item => ({
+      url: `https://ches4117.site/${item.episode}/${item.text}.jpg`,
+      src: `https://ches4117.site/${item.episode}/${item.text}.jpg`,
+      alt: item.text,
+    }))
+}
+
+function detectScrollToBottom() {
+  searchGallery.addEventListener("scroll", () => {
+    if (searchGallery.scrollTop >= maxScrollHeight * currentPage) {
+      currentPage += 1
+      const pageItems = getPageItems(currentPage)
+      pageItems.forEach(item => {
+        createSearchImageElement(item)
+      })
+    }
+  });
+}
+
+async function getJson() {
+  let result = await fetch('./mapping.json');
+  inputMappingArray = (await result.json()).result
+}
+
+getJson();
 getCommonImageList();
 addTabClick();
 handleSearchInput();
+detectScrollToBottom();
