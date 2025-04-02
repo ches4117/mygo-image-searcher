@@ -1,10 +1,7 @@
 {
   "manifest_version": 3,
   "name": "mygo-image-searcher",
-  "gecko": {
-    "id": "ches4117@gmail.com"
-  },
-  "version": "1.3",
+  "version": "1.3.1",
   "description": "Use mygo image to chat with other people",
   "action": {
     "default_popup": "./src/popup.html",
@@ -15,6 +12,6 @@
       "128": "./icons/128.png"
     }
   },
-  "host_permissions": ["https://drive.miyago9267.com/*"],
+  "host_permissions": ["https://ches4117.site/*"],
   "permissions": ["clipboardWrite", "storage"]
 }
