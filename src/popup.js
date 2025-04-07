@@ -21,6 +21,10 @@ function setCurrentTab(tab) {
   currentTab = tab;
 }
 
+function clearGallery() {
+  searchGallery.innerHTML = "";
+}
+
 function addActiveClass(tab) {
   tab.classList.add("active");
   document.getElementById(tab.dataset.tab).classList.add("active");
@@ -102,9 +106,9 @@ function removeEmptyElement() {
 }
 
 function createSearch(inputValue) {
-  searchGallery.innerHTML = "";
+  clearGallery();
   currentPage = 1;
-
+  
   if (!inputValue) {
     createSearchElement("輸入台詞搜尋圖片");
     return;
@@ -114,7 +118,7 @@ function createSearch(inputValue) {
 
   searchTimeoutInstance = setTimeout(async function () {
     searchTimeoutInstance = null;
-    searchGallery.innerHTML = "";
+    clearGallery();
     if (inputValue.length === 0) createSearchElement("沒有搜尋結果");
     else {
       removeEmptyElement();
@@ -205,6 +209,11 @@ function handleSearchInput() {
   createSearchElement("輸入台詞搜尋圖片");
   searchInput.addEventListener("input", function () {
     inputValue = searchInput.value.trim();
+    if(!inputValue) {
+      clearGallery()
+      createSearchElement("輸入台詞搜尋圖片");
+      return 
+    }
     filtMappingArray = inputMappingArray.filter(item => item.text.includes(inputValue))
 
     if (searchTimeoutInstance) {
